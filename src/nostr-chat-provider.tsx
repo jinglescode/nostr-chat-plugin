@@ -6,34 +6,42 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { Relay } from "nostr-tools";
-import { Filter } from "nostr-tools";
-import { finalizeEvent, generateSecretKey, getPublicKey } from "nostr-tools";
-import { nip19 } from "nostr-tools";
+import {
+  nip19,
+  finalizeEvent,
+  generateSecretKey,
+  getPublicKey,
+  Filter,
+  Relay,
+} from "nostr-tools";
 import { Message, User } from "./types.js";
 
 const NostrChatContext = createContext({
   subscribeRoom: (roomId: string) => {},
   publishMessage: (message: string) => {},
   messages: [] as Message[] | undefined,
-  nostrChatUser: {
-    id: "",
+  user: {
     nsec: "",
     pubkey: "",
   } as User | undefined,
+  generateNsec: () => {
+    return { nsec: "", pubkey: "" };
+  },
+  setUser: ({ nsec, pubkey }: User) => {},
 });
 
-export const NostrChatProvider = ({ children }: { children: ReactNode }) => {
+export const NostrChatProvider = ({
+  children,
+  relay = "wss://relay.damus.io",
+}: {
+  children: ReactNode;
+  relay?: string;
+}) => {
   const [messages, setMessages] = useState<Message[] | undefined>(undefined);
   const [roomId, setRoomId] = useState<string | undefined>(undefined);
-  const [nostrChatUser, setNostrChatUser] = useState<undefined | User>(
-    undefined
-  );
+  const [user, setUser] = useState<undefined | User>(undefined);
 
-  const getRelay = useMemo(
-    async () => Relay.connect("wss://relay.damus.io"),
-    []
-  );
+  const getRelay = useMemo(async () => Relay.connect(relay), []);
 
   const subscribe = useCallback(
     async (filter: Filter) => {
@@ -41,7 +49,7 @@ export const NostrChatProvider = ({ children }: { children: ReactNode }) => {
       if (relay === undefined) return;
       relay.subscribe([filter], {
         onevent(event) {
-          const newMessage = {
+          const newMessage: Message = {
             id: event.id,
             message: event.content,
             pubkey: event.pubkey,
@@ -64,7 +72,7 @@ export const NostrChatProvider = ({ children }: { children: ReactNode }) => {
 
   const publishMessage = useCallback(
     async (message: string) => {
-      if (roomId && nostrChatUser) {
+      if (roomId && user) {
         const relay = await getRelay;
         if (relay === undefined) return;
 
@@ -75,82 +83,50 @@ export const NostrChatProvider = ({ children }: { children: ReactNode }) => {
           content: message,
         };
 
-        const sk = resolveSk(nostrChatUser.nsec);
-
+        const sk = resolveSk(user.nsec);
         const signedEvent = finalizeEvent(eventTemplate, sk);
         await relay.publish(signedEvent);
       }
     },
-    [getRelay, roomId, nostrChatUser]
+    [getRelay, roomId, user]
   );
 
   function generateNsec() {
     const sk = generateSecretKey();
     const nsec = nip19.nsecEncode(sk);
     const pk = getPublicKey(sk);
-    return { nsec: nsec as string, pk: pk };
+    return { nsec: nsec as string, pubkey: pk };
   }
 
-  function resolveSk(nsec: string): Uint8Array {
+  function resolveSk(nsec: string) {
     const { data } = nip19.decode(nsec);
     return data as Uint8Array;
   }
-
-  // useEffect(() => {
-  //   if (user === undefined) return;
-
-  //   const _user = {
-  //     id: user.id,
-  //     nsec: user.nostrNsec ? user.nostrNsec : "",
-  //     pubkey: user.nostrPubkey ? user.nostrPubkey : "",
-  //   };
-
-  //   if (
-  //     user.nostrNsec === null ||
-  //     user.nostrPubkey === null ||
-  //     (user.nostrNsec &&
-  //       user.nostrPubkey &&
-  //       user.nostrNsec.length == 0 &&
-  //       user.nostrPubkey.length == 0)
-  //   ) {
-  //     const { nsec, pk } = generateNsec();
-
-  //     updateUserNsec({
-  //       userId: sessionData!.user.id,
-  //       nsec: nsec,
-  //       pubkey: pk,
-  //     });
-
-  //     _user.nsec = nsec;
-  //     _user.pubkey = pk;
-  //   }
-
-  //   setNostrChatUser(_user);
-  //   setUserConnected(true);
-  // }, [user]);
 
   const memoedValue = useMemo(
     () => ({
       subscribeRoom,
       publishMessage,
       messages,
-      subscribe,
       setMessages,
-      nostrChatUser,
-      setNostrChatUser,
+      user,
+      setUser,
       roomId,
       setRoomId,
+      generateNsec,
+      subscribe,
     }),
     [
       subscribeRoom,
       publishMessage,
       messages,
-      subscribe,
       setMessages,
-      nostrChatUser,
-      setNostrChatUser,
+      user,
+      setUser,
       roomId,
       setRoomId,
+      generateNsec,
+      subscribe,
     ]
   );
 

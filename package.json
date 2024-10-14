@@ -1,13 +1,21 @@
 {
   "name": "@jinglescode/nostr-chat-plugin",
-  "version": "0.0.1",
-  "description": "A NOSTR React chat plugin",
+  "version": "0.0.10",
+  "description": "A chat room React component that uses NOSTR protocol for messaging.",
   "author": "jinglescode",
-  "license": "MIT",
+  "license": "Apache-2.0",
+  "private": false,
   "type": "module",
-  "main": "dist/index.js",
-  "module": "dist/index.es.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.esm.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
     "build": "rollup -c && cp package.json dist/"
   },

@@ -1,18 +1,11 @@
 export type Message = {
-  id?: string;
+  id: string;
   message: string;
   pubkey: string;
-  timestamp?: number;
+  timestamp: number;
 };
 
 export type User = {
-  id: string;
   pubkey: string;
   nsec: string;
-};
-
-export type UserData = {
-  id: string;
-  avatar: string;
-  name: string;
 };
