@@ -17,17 +17,18 @@ import {
 import { Message, User } from "./types.js";
 
 const NostrChatContext = createContext({
-  subscribeRoom: (roomId: string) => {},
-  publishMessage: (message: string) => {},
+  subscribeRoom: async (roomId: string) => {},
+  publishMessage: async (message: string) => {},
   messages: [] as Message[] | undefined,
-  user: {
-    nsec: "",
-    pubkey: "",
-  } as User | undefined,
+  user: undefined as User | undefined,
   generateNsec: () => {
     return { nsec: "", pubkey: "" };
   },
   setUser: ({ nsec, pubkey }: User) => {},
+  roomId: undefined as string | undefined,
+  setMessages: (messages: Message[] | undefined) => {},
+  setRoomId: (roomId: string | undefined) => {},
+  subscribe: async (filter: Filter) => {},
 });
 
 export const NostrChatProvider = ({
@@ -94,8 +95,8 @@ export const NostrChatProvider = ({
   function generateNsec() {
     const sk = generateSecretKey();
     const nsec = nip19.nsecEncode(sk);
-    const pk = getPublicKey(sk);
-    return { nsec: nsec as string, pubkey: pk };
+    const pubkey = getPublicKey(sk);
+    return { nsec: nsec as string, pubkey: pubkey };
   }
 
   function resolveSk(nsec: string) {
